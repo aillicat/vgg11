@@ -3,7 +3,7 @@ from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.optimizers import SGD
 import matplotlib.pyplot as plt
-
+from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from PIL import Image
 import os
@@ -107,6 +107,16 @@ if __name__ == '__main__':
         optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
 
+    # Data augmentation
+    datagen = ImageDataGenerator(
+        rotation_range=15,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+    )
+
+    datagen.fit(x_train)
+
+    # model.load_weights(weight_path)
     reduce_lr = ReduceLROnPlateau(
         monitor='val_loss', factor=0.1, patience=5, min_lr=0.00001)
     checkpoint = ModelCheckpoint(
@@ -116,10 +126,9 @@ if __name__ == '__main__':
         save_best_only=True,
         save_weights_only=True,
         mode='min')
-    history = model.fit(
-        x_train,
-        y_train,
-        batch_size=256,
+    history = model.fit_generator(
+        datagen.flow(x_train, y_train, batch_size=256),
+        steps_per_epoch=x_train.shape[0] // 256,
         validation_data=(x_test, y_test),
         epochs=74,
         callbacks=[reduce_lr, checkpoint])
